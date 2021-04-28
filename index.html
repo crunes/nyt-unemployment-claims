@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+		<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,900;1,100;1,400;1,700&family=Playfair+Display&family=Raleway:ital,wght@1,200&display=swap" rel="stylesheet">
+    <title>More Than 3 Million Americans Lost Their Job Last Week</title>
+    <style>
+        body {
+          background-color: #f7f2df;
+          margin-left: 10rem;
+        	margin-right: 20rem;
+        	margin-bottom: 10rem
+          margin-top: 10rem;
+        }
+
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            font-family: 'Lato', 'Raleway', sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+
+        h1, h2, h3, h4, h5 {
+        	font-family: 'Lato', 'Raleway', sans-serif;
+        	/* margin-left: 1rem; */
+        	margin-right: 1rem;
+        }
+
+        h1 {
+        	font-size: 75px;
+        	font-weight: 100;
+        	font-style: italic;
+        	margin-bottom: 1rem;
+        	margin-top: 10rem;
+        	color: #1d4f16;
+        	/* color: #d5b4b8; */
+        }
+
+        h2 {
+        	font-family: 'Playfair Display', serif;
+        	color: #353802;
+        	margin-top: 1rem;
+          margin-right: 4rem;
+        	font-size: 24px;
+        }
+
+        h3 {
+        	font-weight: 400;
+        	font-style: italic;
+        }
+
+        h5 {
+        	font-weight: 400;
+        	color: #457e3d;
+        	font-size: 16px;
+        	font-style: italic;
+        }
+
+        p {
+        	font-family: 'Playfair Display', serif;
+        	font-size: 18px;
+        	color: #353802;
+        	/* margin-left: 1rem; */
+        	margin-right: 7rem;
+        }
+
+        p.source {
+          color: #946656;
+          font-size: 12px;
+        }
+
+        .annotationBig {
+          fill: #f46898;
+          font-size: 22px;
+        }
+
+        .annotation {
+          font-size: 12px;
+        }
+
+        .highlight {
+          fill: #c79274;
+          opacity: 0.15;
+        }
+
+        .x .domain {
+            display: none;
+        }
+
+        .y .domain {
+            display: none;
+        }
+
+        .y .tick text {
+            font-size: 14px;
+            fill: #946656;
+            font-family: 'Lato';
+        }
+
+        .y .tick line {
+            stroke: rgba(225,176,156,0.5);
+            style: dashed;
+        }
+
+        .x .tick text {
+            font-size: 14px;
+            fill: #946656;
+            font-family: 'Lato';
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h2 class="headline">
+            More Than 3 Million Americans Lost Their Job Last Week. See Your State.
+        </h2>
+
+        <p>
+          Official statistics have revealed how severely coronavirus has hurt the
+          job market. But it may take several months before we know whether this
+          economic disaster will resemble a storm or a long winter.
+        </p>
+
+        <p class="source">
+          Source: The New York Times, redesigned by Charmaine Runes.
+        </p>
+
+        <svg width="1050px" height="500px">
+        </svg>
+
+    </div>
+</body>
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<script>
+    console.log(d3)
+    let width = 1050;
+    let height = 500;
+
+    let svg = d3.select("body").select("svg")
+
+    let margin = { top: 0, right: 0, bottom: 30, left: 0 };
+
+    d3.csv("nat.csv").then(function (data) {
+        console.log("loaded")
+        console.log({ data })
+
+        data.forEach(d => {
+          d.date = new Date(d.end)
+          d.value = +d.value
+        });
+
+        console.log({ data })
+
+        let xTime = d3.scaleTime()
+            .domain(d3.extent(data.map(d => d.date)))
+            .range([0, width])
+
+        let x = d3.scaleBand()
+            // .domain(data.map(d => d.date))
+            .domain(data.map(d => d.date))
+            .range([0, width])
+
+        let y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.value)])
+            .range([height, 0])
+
+        let bars = svg.selectAll("bar")
+          .data(data)
+          .join("rect")
+            .attr("fill", "#f46898")
+            .attr("x", d => x(d.date))
+            .attr("width", x.bandwidth())
+            .attr("y", d => y(d.value) )
+            .attr("height", d => height - y(d.value) )
+
+        let parser = d3.timeParse("%Y-%m-%d")
+
+        let xTickSettings = d3.axisBottom(xTime)
+            .tickPadding(12)
+            .tickSize(4)
+            .tickFormat(d3.timeFormat("%Y"))
+
+        let xAxis = svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", `translate(0,${height})`)
+            .call(xTickSettings)
+
+        let formatValue = d3.format(".2s");
+        let yTickSettings = d3.axisRight(y)
+            .tickSize(-width)
+            .tickValues([500000, 1000000, 1500000, 2000000, 2500000, 3000000])
+            .tickPadding(12)
+            .tickFormat(function(d, i) {
+              // console.log(d, i)
+              if (i >= 2) {
+                return (formatValue(d).replace('M', ' million'))
+              } else {
+                return d3.format(",")(d)
+              }
+            })
+
+        let yAxis = svg.append("g")
+            .attr("class", "y axis")
+            .attr("transform", `translate(${margin.left + width},0)`)
+            .call(yTickSettings)
+
+        let highlight = svg.append("rect")
+            .attr('class', 'highlight')
+            .attr('x', xTime(parser("2007-12-01")))
+            .attr('y', y(2250000))
+            .attr('width', xTime(parser("2009-06-30")) - xTime(parser("2007-12-01")))
+            .attr('height', height - y(2250000))
+
+        let circle = svg.append('circle')
+            .attr('cx', xTime(parser("2020-03-21")))
+            .attr('cy', y(3283000))
+            .attr('r', 5)
+            .style('fill', "#f46898")
+
+        let weeklyAvg = svg.append('line')
+          .attr("x1", margin.left)
+          .attr("x2", width)
+          .attr("y1", y(345000))
+          .attr("y2", y(345000))
+          .style("stroke", "#353802")
+          .style("stroke-width", "1px")
+          .style("stroke-opacity", "0.7")
+
+        let annotationBig = svg.append("text")
+            .attr("class", "annotationBig")
+            .attr("x", xTime(parser("2020-03-21")) - 120)
+            .attr("y", y(3283000))
+            .text("3,283,000")
+            .style('font-weight', 900)
+
+        let annotationSmall = svg.append("text")
+            .attr("class", "annotation")
+            .attr("x", xTime(parser("2020-03-21")) - 125)
+            .attr("y", y(3175000))
+            .text("claims filed last week")
+            .style('font-weight', 400)
+            .style('fill', "#f46898")
+
+        let annotationAverage = svg.append("text")
+            .attr("class", "annotation")
+            .attr("x", xTime(parser("2017-01-01")))
+            .attr("y", y(345000) - 7)
+            .text("Weekly average, 345,000")
+            .style('font-weight', 400)
+            .style('fill', "#353802")
+
+        let annotationRecession = svg.append("text")
+            .attr("class", "annotation")
+            .attr("x", xTime(parser("2006-04-01")))
+            .attr("y", y(735000))
+            .text("2008 recession")
+            .style('font-weight', 400)
+            .style('fill', "#353802")
+    })
+
+</script>
